@@ -1,5 +1,5 @@
 // صفحة المتجر (الشاشة 4): الغلاف، الاسم، وقت التحضير، الحد الأدنى، ثم المنتجات تحت أقسامها.
-// شريط عرض السلة والإضافة السريعة يأتيان مع السلة في المرحلة 6.
+// زر الإضافة السريعة يظهر إذا كان المتجر مفتوحًا، وشريط "عرض السلة" يظهر إذا كانت السلة غير فارغة.
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -12,6 +12,7 @@ import { Button } from '@/components/Button';
 import { ProductRow, type Product } from '@/components/ProductRow';
 import { formatMoney } from '@/lib/money';
 import { supabase } from '@/lib/supabase';
+import { addToCart, cartCount, cartSubtotal, useCart } from '@/stores/cart';
 import { colors, fonts } from '@/theme';
 
 type StoreDetails = {
@@ -31,6 +32,7 @@ export default function StoreScreen() {
   const [store, setStore] = useState<StoreDetails | null | undefined>(undefined);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  const cartItems = useCart((s) => s.items); // الشاشة تُحدَّث تلقائيًا عند تغيّر السلة
 
   // طلب واحد يجلب المتجر وأقسامه ومنتجات كل قسم، مرتبة حسب sort_order
   useEffect(() => {
@@ -89,6 +91,8 @@ export default function StoreScreen() {
     .filter((s) => s.products.length > 0)
     .map((s) => ({ title: s.name_ar, data: s.products }));
 
+  const cartStore = { id, name: store.name_ar, minOrder: store.min_order };
+
   return (
     <View style={styles.screen}>
       <SectionList
@@ -121,12 +125,29 @@ export default function StoreScreen() {
         renderSectionHeader={({ section }) => <Text style={styles.section}>{section.title}</Text>}
         renderItem={({ item }) => (
           <View style={styles.item}>
-            <ProductRow product={item} onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.id } })} />
+            <ProductRow
+              product={item}
+              onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.id } })}
+              // المتجر المغلق يُتصفح دون إضافة للسلة (القسم 6)
+              onAdd={
+                store.is_open
+                  ? () => addToCart(cartStore, { id: item.id, name: item.name_ar, price: item.price }, 1)
+                  : undefined
+              }
+            />
           </View>
         )}
         ListEmptyComponent={<Text style={styles.empty}>{t('browse.noProducts')}</Text>}
         contentContainerStyle={styles.list}
       />
+      {cartItems.length > 0 && (
+        <SafeAreaView edges={['bottom']} style={styles.cartBar}>
+          <Pressable style={styles.cartButton} onPress={() => router.push('/cart')} accessibilityRole="button">
+            <Text style={styles.cartText}>{t('cart.view', { count: cartCount(cartItems) })}</Text>
+            <Text style={[styles.cartText, styles.ltr]}>{formatMoney(cartSubtotal(cartItems))}</Text>
+          </Pressable>
+        </SafeAreaView>
+      )}
     </View>
   );
 }
@@ -169,10 +190,11 @@ const styles = StyleSheet.create({
   meta: { flexDirection: 'row', gap: 14 },
   metaText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
   ltr: { writingDirection: 'ltr' },
+  // اسم القسم برتقالي ليتميز عن أسماء المنتجات. الدرجة الأغمق لأنها نص على خلفية فاتحة (القسم 7)
   section: {
     fontFamily: fonts.bold,
     fontSize: 17,
-    color: colors.text,
+    color: colors.primaryDark,
     marginTop: 16,
     paddingHorizontal: 16,
   },
@@ -185,4 +207,22 @@ const styles = StyleSheet.create({
     marginTop: 32,
   },
   error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
+  cartBar: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 8,
+    backgroundColor: colors.surface,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  cartButton: {
+    height: 54,
+    borderRadius: 14,
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+  },
+  cartText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
 });

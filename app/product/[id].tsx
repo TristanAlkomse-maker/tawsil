@@ -1,5 +1,5 @@
 // تفاصيل المنتج (الشاشة 5): الصورة، الاسم، الوصف، السعر، عدّاد الكمية.
-// زر "إضافة للسلة" يأتي مع السلة في المرحلة 6، وسيأخذ الكمية من هذا العدّاد.
+// زر "إضافة للسلة" يأخذ الكمية من العدّاد، ويتعطل إذا نفد المنتج أو أُغلق المتجر.
 import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
@@ -13,13 +13,19 @@ import type { Product } from '@/components/ProductRow';
 import { formatMoney } from '@/lib/money';
 import { MAX_QUANTITY, stepQuantity } from '@/lib/quantity';
 import { supabase } from '@/lib/supabase';
+import { addToCart } from '@/stores/cart';
 import { colors, fonts } from '@/theme';
+
+// المنتج ومعه متجره: السلة تحتاج اسم المتجر وحدّه الأدنى، والزر يحتاج معرفة هل هو مفتوح
+type ProductWithStore = Product & {
+  stores: { id: string; name_ar: string; min_order: number; is_open: boolean };
+};
 
 export default function ProductScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { t } = useTranslation();
   // undefined = ما زال يُحمّل، null = المنتج غير موجود
-  const [product, setProduct] = useState<Product | null | undefined>(undefined);
+  const [product, setProduct] = useState<ProductWithStore | null | undefined>(undefined);
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -27,12 +33,12 @@ export default function ProductScreen() {
   useEffect(() => {
     supabase
       .from('products')
-      .select('id, name_ar, description_ar, price, image_url, is_available')
+      .select('id, name_ar, description_ar, price, image_url, is_available, stores (id, name_ar, min_order, is_open)')
       .eq('id', id)
       .maybeSingle()
       .then(({ data, error }) => {
         if (error) setError(true);
-        else setProduct(data);
+        else setProduct(data as ProductWithStore | null);
       });
   }, [id, attempt]);
 
@@ -104,6 +110,22 @@ export default function ProductScreen() {
             <Text style={styles.stepText}>−</Text>
           </Pressable>
         </View>
+
+        <View style={styles.addWrap}>
+          <Button
+            title={t('cart.add')}
+            disabled={!product.is_available || !product.stores.is_open}
+            onPress={() => {
+              const store = product.stores;
+              addToCart(
+                { id: store.id, name: store.name_ar, minOrder: store.min_order },
+                { id: product.id, name: product.name_ar, price: product.price },
+                quantity,
+              );
+              router.back();
+            }}
+          />
+        </View>
       </View>
     </ScrollView>
   );
@@ -148,6 +170,7 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.4 },
   stepText: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
   quantity: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, minWidth: 32, textAlign: 'center' },
+  addWrap: { marginTop: 24 },
   empty: { fontFamily: fonts.regular, fontSize: 15, color: colors.textSecondary, textAlign: 'center' },
   error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
 });

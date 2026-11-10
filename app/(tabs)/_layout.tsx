@@ -1,4 +1,4 @@
-// الشريط السفلي. فيه الآن تبويبان فقط؛ السلة تُضاف في المرحلة 6 وطلباتي في المرحلة 8.
+// الشريط السفلي: الرئيسية، السلة، حسابي. تبويب طلباتي يُضاف في المرحلة 8.
 import { Tabs } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -37,6 +37,19 @@ export default function TabsLayout() {
             <Svg {...icon} stroke={color}>
               <Path d="M3 11l9-8 9 8" />
               <Path d="M5 10v10h14V10" />
+            </Svg>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="cart"
+        options={{
+          title: t('tabs.cart'),
+          tabBarIcon: ({ color }) => (
+            <Svg {...icon} stroke={color}>
+              <Circle cx={9} cy={20} r={1.5} />
+              <Circle cx={18} cy={20} r={1.5} />
+              <Path d="M2 3h3l3 12h11l2-8H7" />
             </Svg>
           ),
         }}

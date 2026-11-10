@@ -1,8 +1,9 @@
 // سطر منتج في صفحة المتجر. المنتج النافد باهت ومعطّل وعليه كلمة "نفد".
-// زر الإضافة السريعة يأتي مع السلة في المرحلة 6.
+// زر الإضافة السريعة (+) يظهر فقط إذا مرّرت الشاشة onAdd، أي إذا كان المتجر مفتوحًا.
 import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Path } from 'react-native-svg';
 
 import { formatMoney } from '@/lib/money';
 import { colors, fonts } from '@/theme';
@@ -16,9 +17,9 @@ export type Product = {
   is_available: boolean;
 };
 
-type Props = { product: Product; onPress: () => void };
+type Props = { product: Product; onPress: () => void; onAdd?: () => void };
 
-export function ProductRow({ product, onPress }: Props) {
+export function ProductRow({ product, onPress, onAdd }: Props) {
   const { t } = useTranslation();
 
   return (
@@ -37,6 +38,17 @@ export function ProductRow({ product, onPress }: Props) {
       </View>
       <Image source={product.image_url} style={styles.image} />
       {!product.is_available && <Text style={styles.soldOut}>{t('browse.soldOut')}</Text>}
+      {product.is_available && onAdd && (
+        <Pressable
+          style={styles.add}
+          onPress={onAdd}
+          accessibilityLabel={t('cart.addItem', { name: product.name_ar })}
+        >
+          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+            <Path d="M12 5v14M5 12h14" />
+          </Svg>
+        </Pressable>
+      )}
     </Pressable>
   );
 }
@@ -64,4 +76,12 @@ const styles = StyleSheet.create({
   },
   image: { width: 64, height: 64, borderRadius: 12, backgroundColor: colors.placeholder },
   soldOut: { fontFamily: fonts.bold, fontSize: 13, color: colors.dangerDark },
+  add: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });
