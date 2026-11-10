@@ -1,4 +1,32 @@
 {
   "appName": "توصيل",
-  "start": "ابدأ"
+  "start": "ابدأ",
+  "tabs": {
+    "home": "الرئيسية",
+    "account": "حسابي"
+  },
+  "auth": {
+    "tagline": "اطلب من مطاعم ومتاجر طرابلس",
+    "fullName": "الاسم",
+    "phone": "رقم الهاتف",
+    "password": "كلمة المرور",
+    "login": "دخول",
+    "register": "إنشاء حساب",
+    "noAccount": "ليس لديك حساب؟",
+    "createAccount": "أنشئ حسابًا",
+    "haveAccount": "لديك حساب؟",
+    "signIn": "سجّل الدخول",
+    "browseAsGuest": "تصفح بدون حساب",
+    "logout": "تسجيل الخروج",
+    "nameRequired": "اكتب اسمك",
+    "invalidPhone": "اكتب رقم هاتف ليبي صحيح، مثل 0912345678",
+    "passwordTooShort": "كلمة المرور 8 أحرف على الأقل",
+    "wrongCredentials": "رقم الهاتف أو كلمة المرور غير صحيحة",
+    "phoneTaken": "هذا الرقم له حساب. سجّل الدخول"
+  },
+  "errors": {
+    "noConnection": "تعذّر الاتصال، تحقق من الإنترنت",
+    "generic": "حدث خطأ، حاول مرة أخرى",
+    "retry": "إعادة المحاولة"
+  }
 }
