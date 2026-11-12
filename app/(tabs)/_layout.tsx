@@ -1,4 +1,4 @@
-// الشريط السفلي: الرئيسية، السلة، حسابي. تبويب طلباتي يُضاف في المرحلة 8.
+// الشريط السفلي بأربع تبويبات (القسم 6): الرئيسية، السلة، طلباتي، حسابي.
 import { Tabs } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
@@ -50,6 +50,18 @@ export default function TabsLayout() {
               <Circle cx={9} cy={20} r={1.5} />
               <Circle cx={18} cy={20} r={1.5} />
               <Path d="M2 3h3l3 12h11l2-8H7" />
+            </Svg>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="orders"
+        options={{
+          title: t('tabs.orders'),
+          tabBarIcon: ({ color }) => (
+            <Svg {...icon} stroke={color}>
+              <Path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+              <Path d="M9 8h6M9 12h6" />
             </Svg>
           ),
         }}

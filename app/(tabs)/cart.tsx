@@ -33,8 +33,7 @@ export default function CartScreen() {
   async function checkout() {
     // الزائر يملأ السلة دون حساب، ويُطلب منه الدخول هنا (القسم 6)
     const { data } = await supabase.auth.getSession();
-    if (!data.session) router.push('/login');
-    // للمسجّل: شاشة تأكيد الطلب تأتي في المرحلة 8
+    router.push(data.session ? '/checkout' : '/login');
   }
 
   return (

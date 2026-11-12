@@ -4,7 +4,53 @@
   "tabs": {
     "home": "الرئيسية",
     "cart": "السلة",
-    "account": "حسابي"
+    "account": "حسابي",
+    "orders": "طلباتي"
+  },
+  "status": {
+    "pending": "بانتظار القبول",
+    "accepted": "تم القبول",
+    "preparing": "قيد التحضير",
+    "on_the_way": "في الطريق",
+    "delivered": "تم التسليم",
+    "rejected": "مرفوض",
+    "cancelled": "ملغي"
+  },
+  "order": {
+    "checkoutTitle": "تأكيد الطلب",
+    "change": "تغيير",
+    "deliveryFee": "رسوم التوصيل",
+    "total": "الإجمالي",
+    "totalCash": "الإجمالي (كاش)",
+    "cash": "الدفع كاش عند الاستلام",
+    "prepareCash": "جهّز المبلغ {{amount}}",
+    "notes": "ملاحظات للمتجر (اختياري)",
+    "confirm": "تأكيد الطلب",
+    "number": "طلب رقم {{n}}",
+    "statusNow": "الحالة الآن",
+    "rejectedMessage": "اعتذر المتجر عن قبول طلبك",
+    "cancelledMessage": "أُلغي هذا الطلب",
+    "cancel": "إلغاء الطلب",
+    "cancelTitle": "إلغاء الطلب",
+    "cancelMessage": "هل تريد إلغاء هذا الطلب؟",
+    "keep": "تراجع",
+    "callStore": "اتصال بالمتجر",
+    "active": "الطلبات النشطة",
+    "past": "الطلبات السابقة",
+    "empty": "لا توجد طلبات بعد",
+    "errors": {
+      "store_unavailable": "هذا المتجر غير متاح الآن",
+      "store_closed": "المتجر مغلق الآن، والسلة تبقى كما هي",
+      "address_not_found": "اختر عنوان التوصيل من جديد",
+      "zone_inactive": "التوصيل متوقف إلى هذه المنطقة الآن، اختر عنوانًا آخر",
+      "empty_cart": "السلة فارغة",
+      "invalid_quantity": "الكمية يجب أن تكون بين 1 و 99",
+      "product_not_in_store": "في السلة منتج لا يتبع هذا المتجر، فرّغ السلة وابدأ من جديد",
+      "product_unavailable": "نفد «{{name}}»، احذفه من السلة ثم أكّد الطلب",
+      "below_min_order": "مجموع المنتجات أقل من الحد الأدنى للمتجر",
+      "order_not_found": "لم نجد هذا الطلب",
+      "order_not_pending": "لا يمكن إلغاء الطلب بعد قبوله"
+    }
   },
   "cart": {
     "title": "السلة",
