@@ -1,17 +1,20 @@
-// الرئيسية (الشاشة 3): شريط التصنيفات ثم بطاقات المتاجر.
-// العنوان الحالي في الأعلى يُضاف مع العناوين في المرحلة 7.
-import { router } from 'expo-router';
-import { useEffect, useState } from 'react';
+// الرئيسية (الشاشة 3): العنوان المختار في الأعلى، ثم شريط التصنيفات، ثم بطاقات المتاجر.
+import { router, useFocusEffect } from 'expo-router';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import Svg, { Circle, Path } from 'react-native-svg';
+
 import { Button } from '@/components/Button';
 import { StoreCard, type Store } from '@/components/StoreCard';
+import { selectedAddress } from '@/lib/address';
 import { supabase } from '@/lib/supabase';
 import { colors, fonts } from '@/theme';
 
 type Category = { id: string; name_ar: string };
+type Address = { label: string; is_default: boolean; zones: { name_ar: string } };
 
 export default function Home() {
   const { t } = useTranslation();
@@ -20,6 +23,23 @@ export default function Home() {
   const [error, setError] = useState(false);
   const [attempt, setAttempt] = useState(0); // يزيد مع كل "إعادة المحاولة"
   const [categoryId, setCategoryId] = useState<string | null>(null); // null = الكل
+  const [address, setAddress] = useState<Address | null>(null); // null = زائر أو بلا عناوين
+
+  // العنوان المختار يُجلب كلما ظهرت الشاشة، فيتحدّث بعد الرجوع من عناويني.
+  // الزائر لا عناوين له (قاعدة البيانات ترفض طلبه أصلًا)، فلا نرسل الطلب.
+  useFocusEffect(
+    useCallback(() => {
+      supabase.auth.getSession().then(async ({ data: { session } }) => {
+        if (!session) return setAddress(null);
+        const { data } = await supabase
+          .from('addresses')
+          .select('label, is_default, zones (name_ar)')
+          .order('created_at')
+          .returns<Address[]>();
+        setAddress(selectedAddress(data ?? []));
+      });
+    }, []),
+  );
 
   // نجلب التصنيفات والمتاجر معًا. قواعد RLS تُرجع المتاجر المعتمدة فقط.
   useEffect(() => {
@@ -66,6 +86,23 @@ export default function Home() {
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
+      {/* الزائر يُحوَّل إلى الدخول من شاشة عناويني نفسها */}
+      <Pressable style={styles.address} onPress={() => router.push('/addresses')} accessibilityRole="button">
+        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
+          <Circle cx={12} cy={9.5} r={2.5} />
+        </Svg>
+        <View>
+          <Text style={styles.addressHint}>{t('addresses.deliverTo')}</Text>
+          <Text style={styles.addressText}>
+            {address ? `${address.label}، ${address.zones.name_ar}` : t('addresses.addFirst')}
+          </Text>
+        </View>
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M6 9l6 6 6-6" />
+        </Svg>
+      </Pressable>
+
       <View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
           {chips.map((c) => {
@@ -101,6 +138,9 @@ export default function Home() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   center: { justifyContent: 'center', padding: 24, gap: 16 },
+  address: { flexDirection: 'row', alignItems: 'center', gap: 8, minHeight: 44, paddingHorizontal: 16, paddingTop: 16 },
+  addressHint: { fontFamily: fonts.regular, fontSize: 12, color: colors.textSecondary },
+  addressText: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   chips: { gap: 8, paddingHorizontal: 16, paddingVertical: 12 },
   chip: {
     height: 44,
