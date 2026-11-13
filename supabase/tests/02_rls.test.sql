@@ -148,11 +148,16 @@ select is((select delivery_fee from public.zones where name_ar = 'عين زار�
 -- ---------- المدير ج ----------
 set local request.jwt.claims to '{"sub": "00000000-0000-0000-0000-00000000000c", "role": "authenticated"}';
 
-select is((select count(*) from public.profiles), 3::bigint,
+-- نعدّ صفوف الاختبار فقط: القاعدة الحقيقية قد يكون فيها حسابات وطلبات أخرى
+select is((select count(*) from public.profiles where id in (
+            '00000000-0000-0000-0000-00000000000a',
+            '00000000-0000-0000-0000-00000000000b',
+            '00000000-0000-0000-0000-00000000000c')), 3::bigint,
   'المدير يقرأ كل الحسابات');
 
-select is((select count(*) from public.orders), 1::bigint,
-  'المدير يقرأ كل الطلبات');
+select is((select count(*) from public.orders
+            where id = '00000000-0000-0000-0000-0000000000b1'), 1::bigint,
+  'المدير يقرأ كل الطلبات، ومنها طلب العميل ب');
 
 update public.zones set delivery_fee = 12.00 where name_ar = 'عين زارة';
 select is((select delivery_fee from public.zones where name_ar = 'عين زارة'), 12.00::numeric,
