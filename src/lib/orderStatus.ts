@@ -28,6 +28,19 @@ export function stageState(stage: OrderStatus, status: OrderStatus): 'done' | 'c
   return 'upcoming';
 }
 
+// الحالات التي يستطيع المدير نقل الطلب إليها: نفس جدول القسم 4 ونفس قائمة set_order_status.
+// صفحة الإدارة تعرض زرًا لكل واحدة فقط. الحالات النهائية غير موجودة هنا، فلا أزرار لها.
+const ADMIN_TRANSITIONS: Partial<Record<OrderStatus, OrderStatus[]>> = {
+  pending: ['accepted', 'rejected'],
+  accepted: ['preparing', 'cancelled'],
+  preparing: ['on_the_way', 'cancelled'],
+  on_the_way: ['delivered', 'cancelled'],
+};
+
+export function adminTransitions(status: OrderStatus): OrderStatus[] {
+  return ADMIN_TRANSITIONS[status] ?? [];
+}
+
 // نشط = لم يصل بعد إلى حالة نهائية. يُستخدم لتقسيم تبويب طلباتي.
 export function isActive(status: OrderStatus): boolean {
   return !['delivered', 'rejected', 'cancelled'].includes(status);

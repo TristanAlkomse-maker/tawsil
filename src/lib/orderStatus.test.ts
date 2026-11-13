@@ -1,4 +1,4 @@
-import { isActive, STAGES, stageState, statusLabel } from './orderStatus';
+import { adminTransitions, isActive, STAGES, stageState, statusLabel } from './orderStatus';
 
 describe('مراحل الطلب', () => {
   it('المراحل الخمس بترتيب رحلة الطلب', () => {
@@ -45,5 +45,24 @@ describe('مراحل الطلب', () => {
     expect(isActive('delivered')).toBe(false);
     expect(isActive('rejected')).toBe(false);
     expect(isActive('cancelled')).toBe(false);
+  });
+});
+
+// أزرار صفحة الإدارة: نفس جدول الانتقالات في القسم 4 ودالة set_order_status
+describe('الانتقالات المسموحة للمدير', () => {
+  it('بانتظار القبول: قبول أو رفض فقط (الإلغاء هنا للعميل وحده)', () => {
+    expect(adminTransitions('pending')).toEqual(['accepted', 'rejected']);
+  });
+
+  it('كل حالة نشطة بعد القبول تتقدم خطوة واحدة أو تُلغى', () => {
+    expect(adminTransitions('accepted')).toEqual(['preparing', 'cancelled']);
+    expect(adminTransitions('preparing')).toEqual(['on_the_way', 'cancelled']);
+    expect(adminTransitions('on_the_way')).toEqual(['delivered', 'cancelled']);
+  });
+
+  it('الحالات النهائية بلا أزرار', () => {
+    expect(adminTransitions('delivered')).toEqual([]);
+    expect(adminTransitions('rejected')).toEqual([]);
+    expect(adminTransitions('cancelled')).toEqual([]);
   });
 });

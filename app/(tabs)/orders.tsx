@@ -32,7 +32,8 @@ export default function Orders() {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // قواعد RLS تُرجع طلبات هذا العميل فقط. الأحدث أولًا.
+  // طلبات هذا المستخدم فقط، الأحدث أولًا. الفلتر بـ customer_id ضروري:
+  // قواعد RLS تسمح للمدير بقراءة كل الطلبات، فبدونه يرى المدير طلبات الجميع هنا.
   // نعيد الجلب كلما ظهر التبويب، فتظهر الحالات الجديدة.
   const load = useCallback(() => {
     if (!session) return;
@@ -40,6 +41,7 @@ export default function Orders() {
     supabase
       .from('orders')
       .select('id, order_number, status, total, stores (name_ar)')
+      .eq('customer_id', session.user.id)
       .order('created_at', { ascending: false })
       .returns<Order[]>()
       .then(({ data, error }) => {

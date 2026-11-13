@@ -7,6 +7,11 @@ describe('orderErrorKey', () => {
     expect(orderErrorKey({ code: 'P0001', message: 'store_closed' })).toBe('order.errors.store_closed');
   });
 
+  it('رفض set_order_status في صفحة الإدارة يتحول أيضًا إلى جملة عربية', () => {
+    expect(orderErrorKey({ code: 'P0001', message: 'invalid_transition' })).toBe('order.errors.invalid_transition');
+    expect(orderErrorKey({ code: 'P0001', message: 'not_admin' })).toBe('order.errors.not_admin');
+  });
+
   it('كل رمز ترميه دوال الطلب له جملة عربية في ar.json', () => {
     for (const code of ORDER_ERROR_CODES) {
       expect(i18n.exists(`order.errors.${code}`)).toBe(true);
