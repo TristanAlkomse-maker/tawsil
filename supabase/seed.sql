@@ -39,6 +39,20 @@ select c.id, s.name_ar, s.description_ar, z.id, s.phone, s.min_order, s.prep_min
   join public.store_categories c on c.name_ar = s.category
   join public.zones z on z.name_ar = 'عين زارة';
 
+-- شعارات المتاجر: الصور في Supabase Storage (المخزن stores)، ونسخها الأصلية في supabase/storage/stores/
+update public.stores s set logo_url = 'https://ufbvkllhmimdolgxqwkj.supabase.co/storage/v1/object/public/stores/' || v.file
+  from (values
+    ('برجر المشتل', 'burger-almashtal.webp'),
+    ('بيتزا الفرن', 'pizza-alforn.webp'),
+    ('سوق مرمرة',  'souq-marmara.webp')
+  ) as v (name_ar, file)
+ where s.name_ar = v.name_ar;
+
+-- غلاف صفحة المتجر
+update public.stores
+   set cover_url = 'https://ufbvkllhmimdolgxqwkj.supabase.co/storage/v1/object/public/stores/burger-almashtal-cover.jpg'
+ where name_ar = 'برجر المشتل';
+
 -- ---------- أقسام القائمة ----------
 insert into public.menu_sections (store_id, name_ar, sort_order)
 select st.id, m.name_ar, m.sort_order
