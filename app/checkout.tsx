@@ -5,17 +5,20 @@ import type { Session } from '@supabase/supabase-js';
 import { Redirect, router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
+import { Input } from '@/components/Input';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { selectedAddress } from '@/lib/address';
 import { formatMoney } from '@/lib/money';
 import { orderErrorKey } from '@/lib/orderError';
 import { supabase } from '@/lib/supabase';
 import { cartSubtotal, useCart } from '@/stores/cart';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, shadows } from '@/theme';
 
 type Address = {
   id: string;
@@ -89,33 +92,31 @@ export default function Checkout() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()} accessibilityLabel={t('browse.back')}>
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M9 6l6 6-6 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>{t('order.checkoutTitle')}</Text>
-      </View>
+      <ScreenHeader title={t('order.checkoutTitle')} />
 
       {loadError ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{t('errors.noConnection')}</Text>
-          <Button title={t('errors.retry')} onPress={load} />
+          <EmptyState
+            icon={<Path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18" />}
+            message={t('errors.noConnection')}
+            action={<Button title={t('errors.retry')} onPress={load} />}
+          />
         </View>
       ) : address === undefined ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <>
-          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
             {/* العنوان */}
             <View style={[styles.card, styles.iconRow]}>
-              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
-                <Circle cx={12} cy={9.5} r={2.5} />
-              </Svg>
+              <View style={styles.iconCircle}>
+                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
+                  <Circle cx={12} cy={9.5} r={2.5} />
+                </Svg>
+              </View>
               {address ? (
                 <>
                   <View style={styles.grow}>
@@ -160,10 +161,12 @@ export default function Checkout() {
 
             {/* الدفع */}
             <View style={[styles.card, styles.iconRow]}>
-              <Svg width={24} height={24} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                <Rect x={3} y={6} width={18} height={12} rx={2} />
-                <Circle cx={12} cy={12} r={2.5} />
-              </Svg>
+              <View style={styles.iconCircle}>
+                <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Rect x={3} y={6} width={18} height={12} rx={2} />
+                  <Circle cx={12} cy={12} r={2.5} />
+                </Svg>
+              </View>
               <View style={styles.grow}>
                 <Text style={styles.bold}>{t('order.cash')}</Text>
                 <Text style={styles.secondary}>{t('order.prepareCash', { amount: formatMoney(total) })}</Text>
@@ -171,15 +174,12 @@ export default function Checkout() {
             </View>
 
             {/* الملاحظات */}
-            <View style={styles.field}>
-              <Text style={styles.fieldLabel}>{t('order.notes')}</Text>
-              <TextInput style={styles.input} value={notes} onChangeText={setNotes} accessibilityLabel={t('order.notes')} />
-            </View>
+            <Input label={t('order.notes')} value={notes} onChangeText={setNotes} />
           </ScrollView>
 
           <View style={styles.footer}>
             {error ? <Text style={styles.error}>{error}</Text> : null}
-            <Button title={t('order.confirm')} onPress={confirm} disabled={!address || sending} />
+            <Button title={t('order.confirm')} onPress={confirm} disabled={!address} loading={sending} />
           </View>
         </>
       )}
@@ -189,51 +189,38 @@ export default function Checkout() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 12 },
-  back: {
+  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 4, gap: 12, paddingBottom: 16 },
+  card,
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
+    borderRadius: 22,
+    backgroundColor: colors.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, flex: 1 },
-  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
-  content: { paddingHorizontal: 16, gap: 12, paddingBottom: 16 },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 16,
-  },
-  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   grow: { flex: 1, gap: 2 },
   bold: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
+  secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary, flexShrink: 1 },
   link: { minHeight: 44, justifyContent: 'center' },
   linkText: { fontFamily: fonts.bold, fontSize: 14, color: colors.primaryDark },
   bill: { gap: 10 },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
   // الأسعار تُقرأ من اليسار إلى اليمين (القسم 7)
-  amount: { fontFamily: fonts.regular, fontSize: 15, color: colors.text, writingDirection: 'ltr' },
-  totalText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
+  amount: { fontFamily: fonts.medium, fontSize: 15, color: colors.text, writingDirection: 'ltr' },
+  totalText: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
   divider: { height: 1, backgroundColor: colors.border },
-  field: { gap: 6 },
-  fieldLabel: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
+  error: { fontFamily: fonts.medium, fontSize: 15, color: colors.danger, textAlign: 'center' },
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    gap: 8,
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.text,
-    textAlign: 'right',
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    ...shadows.raised,
   },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
-  footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 8 },
 });

@@ -2,13 +2,15 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import Svg, { Circle, Path, Rect } from 'react-native-svg';
 
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { authErrorKey } from '@/lib/authError';
 import { normalizePhone, phoneToEmail } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, radius } from '@/theme';
 
 export default function Login() {
   const { t } = useTranslation();
@@ -61,36 +63,22 @@ export default function Login() {
         <Text style={styles.secondary}>{t('auth.tagline')}</Text>
       </View>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('auth.phone')}</Text>
-        <TextInput
-          style={styles.input}
+      <View style={styles.form}>
+        <Input
+          label={t('auth.phone')}
+          ltr
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
           placeholder="091 234 5678"
-          placeholderTextColor={colors.textSecondary}
-          accessibilityLabel={t('auth.phone')}
+          error={phoneError}
         />
-        {!!phoneError && <Text style={styles.error}>{phoneError}</Text>}
+        <Input label={t('auth.password')} ltr value={password} onChangeText={setPassword} secureTextEntry onSubmitEditing={submit} />
+
+        {!!error && <Text style={styles.error}>{error}</Text>}
+
+        <Button title={t('auth.login')} onPress={submit} loading={busy} />
       </View>
-
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('auth.password')}</Text>
-        <TextInput
-          style={styles.input}
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          accessibilityLabel={t('auth.password')}
-        />
-      </View>
-
-      {!!error && <Text style={styles.error}>{error}</Text>}
-
-      <Pressable style={[styles.button, busy && styles.busy]} onPress={submit} disabled={busy}>
-        <Text style={styles.buttonText}>{t('auth.login')}</Text>
-      </Pressable>
 
       <Text style={styles.secondary}>
         {t('auth.noAccount')}{' '}
@@ -110,41 +98,28 @@ export default function Login() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 72, paddingBottom: 32, gap: 20 },
-  header: { alignItems: 'center', gap: 12, marginBottom: 8 },
-  title: { fontFamily: fonts.bold, fontSize: 34, color: colors.text },
+  content: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 72, paddingBottom: 32, gap: 20 },
+  header: { alignItems: 'center', gap: 8, marginBottom: 8 },
+  title: { fontFamily: fonts.bold, fontSize: 36, lineHeight: 54, color: colors.text, marginTop: 8 },
   secondary: {
     fontFamily: fonts.regular,
     fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  field: { gap: 6 },
-  label: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  // الأرقام وكلمة المرور تُكتب من اليسار إلى اليمين لكنها تُحاذى يمينًا كما في التصميم
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.text,
-    writingDirection: 'ltr',
-    textAlign: 'right',
+  // الحقول والزر في بطاقة واحدة
+  form: { ...card, padding: 20, gap: 16 },
+  error: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.dangerDark,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
-  error: { fontFamily: fonts.regular, fontSize: 14, color: colors.danger },
-  button: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  busy: { opacity: 0.6 },
-  buttonText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
   link: { fontFamily: fonts.bold, color: colors.primaryDark },
-  guest: { padding: 12 },
+  guest: { padding: 12, fontFamily: fonts.medium },
 });

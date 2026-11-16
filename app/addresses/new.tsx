@@ -4,15 +4,17 @@ import type { Session } from '@supabase/supabase-js';
 import { Redirect, router } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path } from 'react-native-svg';
 
 import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { MapPicker, type Point } from '@/components/MapPicker';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { formatMoney } from '@/lib/money';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radius, shadows } from '@/theme';
 
 type Zone = { id: string; name_ar: string; delivery_fee: number };
 
@@ -79,26 +81,10 @@ export default function NewAddress() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()} accessibilityLabel={t('browse.back')}>
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M9 6l6 6-6 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>{t('addresses.new')}</Text>
-      </View>
+      <ScreenHeader title={t('addresses.new')} />
 
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('addresses.label')}</Text>
-          <TextInput
-            style={styles.input}
-            value={label}
-            onChangeText={setLabel}
-            placeholder={t('addresses.labelHint')}
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+        <Input label={t('addresses.label')} value={label} onChangeText={setLabel} placeholder={t('addresses.labelHint')} />
 
         <View style={styles.field}>
           <Text style={styles.label}>{t('addresses.zone')}</Text>
@@ -106,9 +92,19 @@ export default function NewAddress() {
             error ? null : <ActivityIndicator color={colors.primary} />
           ) : (
             <>
-              <Pressable style={[styles.input, styles.zoneButton]} onPress={() => setZonesOpen(!zonesOpen)} accessibilityRole="button">
-                <Text style={styles.inputText}>{zone ? zone.name_ar : t('addresses.chooseZone')}</Text>
-                {zone && <Fee amount={zone.delivery_fee} />}
+              <Pressable
+                style={[styles.input, styles.zoneButton, zonesOpen && styles.inputOpen]}
+                onPress={() => setZonesOpen(!zonesOpen)}
+                accessibilityRole="button"
+                accessibilityState={{ expanded: zonesOpen }}
+              >
+                <Text style={[styles.inputText, !zone && styles.hint]}>{zone ? zone.name_ar : t('addresses.chooseZone')}</Text>
+                <View style={styles.zoneEnd}>
+                  {zone && <Fee amount={zone.delivery_fee} />}
+                  <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d={zonesOpen ? 'M6 15l6-6 6 6' : 'M6 9l6 6 6-6'} />
+                  </Svg>
+                </View>
               </Pressable>
               {zonesOpen && (
                 <View style={styles.zoneList}>
@@ -138,23 +134,19 @@ export default function NewAddress() {
           <MapPicker onChange={setPoint} />
         </View>
 
-        <View style={styles.field}>
-          <Text style={styles.label}>{t('addresses.description')}</Text>
-          <TextInput
-            style={styles.input}
-            value={description}
-            onChangeText={setDescription}
-            placeholder={t('addresses.descriptionHint')}
-            placeholderTextColor={colors.textSecondary}
-          />
-        </View>
+        <Input
+          label={t('addresses.description')}
+          value={description}
+          onChangeText={setDescription}
+          placeholder={t('addresses.descriptionHint')}
+        />
 
         {error && <Text style={styles.error}>{t('errors.noConnection')}</Text>}
         {error && !zones && <Button title={t('errors.retry')} onPress={retry} />}
       </ScrollView>
 
       <View style={styles.footer}>
-        <Button title={t('addresses.save')} onPress={save} disabled={!canSave} />
+        <Button title={t('addresses.save')} onPress={save} disabled={!canSave} loading={saving} />
       </View>
     </SafeAreaView>
   );
@@ -172,52 +164,36 @@ function Fee({ amount }: { amount: number }) {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 12 },
-  back: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, flex: 1 },
-  content: { paddingHorizontal: 16, gap: 14, paddingBottom: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 4, gap: 16, paddingBottom: 16 },
   field: { gap: 6 },
   label: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
+  // زر اختيار المنطقة بشكل حقول الإدخال نفسها (src/components/Input.tsx)
   input: {
-    height: 52,
-    borderWidth: 1,
+    height: 54,
+    borderWidth: 1.5,
     borderColor: colors.border,
-    borderRadius: 12,
+    borderRadius: radius.md,
     backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.text,
-    textAlign: 'right',
+    paddingHorizontal: 16,
   },
+  inputOpen: { borderColor: colors.primary },
   inputText: { fontFamily: fonts.regular, fontSize: 16, color: colors.text },
+  hint: { color: colors.textSecondary },
   zoneButton: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  zoneList: {
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    overflow: 'hidden',
-  },
+  zoneEnd: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  zoneList: { borderRadius: radius.md, backgroundColor: colors.surface, overflow: 'hidden', ...shadows.card },
   zoneRow: {
-    minHeight: 48,
-    paddingHorizontal: 14,
+    minHeight: 50,
+    paddingHorizontal: 16,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
   },
-  zoneRowActive: { backgroundColor: colors.background },
+  zoneRowActive: { backgroundColor: colors.primaryTint },
   fee: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
   ltr: { writingDirection: 'ltr' },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
+  error: { fontFamily: fonts.medium, fontSize: 15, color: colors.danger, textAlign: 'center' },
   footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
 });

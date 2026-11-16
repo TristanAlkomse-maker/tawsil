@@ -1,12 +1,15 @@
 // تتبع الطلب (الشاشة 10): رقم الطلب، شريط المراحل، الفاتورة، العنوان، والإلغاء والاتصال.
 // الشاشة تشترك في تغييرات هذا الطلب عبر Supabase Realtime، فتتحدّث وحدها
 // عندما يغيّر المدير الحالة، دون أن يلمسها العميل.
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Circle, Path } from 'react-native-svg';
+
+import { EmptyState } from '@/components/EmptyState';
+import { ScreenHeader } from '@/components/ScreenHeader';
 
 import { Button } from '@/components/Button';
 import { StatusSteps } from '@/components/StatusSteps';
@@ -14,7 +17,7 @@ import { formatMoney } from '@/lib/money';
 import { orderErrorKey } from '@/lib/orderError';
 import { type OrderStatus, statusLabel } from '@/lib/orderStatus';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, radius, shadows } from '@/theme';
 
 type Order = {
   order_number: number;
@@ -88,24 +91,18 @@ export default function OrderTracking() {
     ]);
   }
 
-  const header = (
-    <View style={styles.header}>
-      <Pressable style={styles.back} onPress={() => router.back()} accessibilityLabel={t('browse.back')}>
-        <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-          <Path d="M9 6l6 6-6 6" />
-        </Svg>
-      </Pressable>
-      <Text style={styles.title}>{order ? t('order.number', { n: order.order_number }) : ''}</Text>
-    </View>
-  );
+  const header = <ScreenHeader title={order ? t('order.number', { n: order.order_number }) : ''} />;
 
   if (error && !order) {
     return (
       <SafeAreaView style={styles.screen}>
         {header}
         <View style={styles.center}>
-          <Text style={styles.error}>{error}</Text>
-          <Button title={t('errors.retry')} onPress={load} />
+          <EmptyState
+            icon={<Path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18" />}
+            message={error}
+            action={<Button title={t('errors.retry')} onPress={load} />}
+          />
         </View>
       </SafeAreaView>
     );
@@ -116,7 +113,7 @@ export default function OrderTracking() {
       <SafeAreaView style={styles.screen}>
         {header}
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       </SafeAreaView>
     );
@@ -133,11 +130,13 @@ export default function OrderTracking() {
     <SafeAreaView style={styles.screen}>
       {header}
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         <View style={styles.card}>
-          <View style={styles.now}>
+          <View style={[styles.now, ended && styles.nowEnded, order.status === 'delivered' && styles.nowDone]}>
             <Text style={styles.secondarySmall}>{t('order.statusNow')}</Text>
-            <Text style={[styles.status, ended && styles.statusEnded]}>{statusLabel(order.status)}</Text>
+            <Text style={[styles.status, ended && styles.statusEnded, order.status === 'delivered' && styles.statusDone]}>
+              {statusLabel(order.status)}
+            </Text>
             {order.stores && <Text style={styles.secondary}>{order.stores.name_ar}</Text>}
           </View>
           {/* مرفوض أو ملغي: رسالة واحدة بدل شريط المراحل (القسم 6) */}
@@ -167,10 +166,12 @@ export default function OrderTracking() {
         </View>
 
         <View style={[styles.card, styles.iconRow]}>
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
-            <Circle cx={12} cy={9.5} r={2.5} />
-          </Svg>
+          <View style={styles.iconCircle}>
+            <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+              <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
+              <Circle cx={12} cy={9.5} r={2.5} />
+            </Svg>
+          </View>
           <View style={styles.grow}>
             <Text style={styles.bold}>{order.zone_name}</Text>
             <Text style={styles.secondarySmall}>{order.address_description}</Text>
@@ -178,52 +179,50 @@ export default function OrderTracking() {
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>
-        {/* الإلغاء مسموح فقط قبل أن يقبل المتجر الطلب */}
-        {order.status === 'pending' && (
-          <Pressable style={styles.outline} onPress={cancel} accessibilityRole="button">
-            <Text style={[styles.outlineText, styles.danger]}>{t('order.cancel')}</Text>
-          </Pressable>
-        )}
-        {phone && (
-          <Pressable style={styles.outline} onPress={() => Linking.openURL(`tel:${phone}`)} accessibilityRole="button">
-            <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-              <Path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a1 1 0 01-1 1A16 16 0 014 5a1 1 0 011-1z" />
-            </Svg>
-            <Text style={styles.outlineText}>{t('order.callStore')}</Text>
-          </Pressable>
-        )}
-      </View>
+      {(order.status === 'pending' || phone) && (
+        <View style={styles.footer}>
+          {phone && (
+            <Button
+              variant="outline"
+              title={t('order.callStore')}
+              onPress={() => Linking.openURL(`tel:${phone}`)}
+              icon={
+                <Svg width={20} height={20} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                  <Path d="M5 4h4l2 5-2.5 1.5a11 11 0 005 5L15 13l5 2v4a1 1 0 01-1 1A16 16 0 014 5a1 1 0 011-1z" />
+                </Svg>
+              }
+            />
+          )}
+          {/* الإلغاء مسموح فقط قبل أن يقبل المتجر الطلب */}
+          {order.status === 'pending' && <Button variant="danger" title={t('order.cancel')} onPress={cancel} />}
+        </View>
+      )}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 12 },
-  back: {
+  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
+  content: { paddingHorizontal: 16, paddingTop: 4, gap: 12, paddingBottom: 16 },
+  card,
+  // لوحة الحالة الحالية: برتقالية خفيفة، خضراء عند التسليم، وردية عند الرفض أو الإلغاء
+  now: { gap: 2, marginBottom: 20, padding: 14, borderRadius: radius.md, backgroundColor: colors.primaryTint },
+  nowDone: { backgroundColor: colors.successSoft },
+  nowEnded: { backgroundColor: colors.dangerSoft, marginBottom: 12 },
+  status: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 34, color: colors.text },
+  statusDone: { color: colors.success },
+  statusEnded: { color: colors.dangerDark },
+  endedMessage: { fontFamily: fonts.regular, fontSize: 15, lineHeight: 24, color: colors.textSecondary },
+  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  iconCircle: {
     width: 44,
     height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
+    borderRadius: 22,
+    backgroundColor: colors.primaryTint,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, flex: 1 },
-  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
-  content: { paddingHorizontal: 16, gap: 12, paddingBottom: 16 },
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 16,
-  },
-  now: { gap: 4, marginBottom: 16 },
-  status: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
-  statusEnded: { color: colors.danger },
-  endedMessage: { fontFamily: fonts.regular, fontSize: 15, color: colors.textSecondary },
-  iconRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   grow: { flex: 1, gap: 2 },
   bold: { fontFamily: fonts.bold, fontSize: 15, color: colors.text },
   secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
@@ -231,22 +230,17 @@ const styles = StyleSheet.create({
   bill: { gap: 10 },
   line: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   // الأسعار تُقرأ من اليسار إلى اليمين (القسم 7)
-  amount: { fontFamily: fonts.regular, fontSize: 15, color: colors.text, writingDirection: 'ltr' },
-  totalText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
+  amount: { fontFamily: fonts.medium, fontSize: 15, color: colors.text, writingDirection: 'ltr' },
+  totalText: { fontFamily: fonts.bold, fontSize: 18, color: colors.text },
   divider: { height: 1, backgroundColor: colors.border },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
-  footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16, gap: 8 },
-  outline: {
-    height: 54,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.border,
+  footer: {
+    paddingHorizontal: 16,
+    paddingTop: 16,
+    paddingBottom: 16,
+    gap: 10,
     backgroundColor: colors.surface,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    ...shadows.raised,
   },
-  outlineText: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  danger: { color: colors.danger },
 });

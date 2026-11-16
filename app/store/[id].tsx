@@ -1,19 +1,21 @@
 // صفحة المتجر (الشاشة 4): الغلاف، الاسم، وقت التحضير، الحد الأدنى، ثم المنتجات تحت أقسامها.
 // زر الإضافة السريعة يظهر إذا كان المتجر مفتوحًا، وشريط "عرض السلة" يظهر إذا كانت السلة غير فارغة.
-import { Image } from 'expo-image';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
+import { Picture } from '@/components/Picture';
 import { ProductRow, type Product } from '@/components/ProductRow';
+import { BackButton } from '@/components/ScreenHeader';
 import { formatMoney } from '@/lib/money';
 import { supabase } from '@/lib/supabase';
 import { addToCart, cartCount, cartSubtotal, useCart } from '@/stores/cart';
-import { colors, fonts } from '@/theme';
+import { colors, fonts, radius, shadows } from '@/theme';
 
 type StoreDetails = {
   name_ar: string;
@@ -58,28 +60,23 @@ export default function StoreScreen() {
     setAttempt(attempt + 1);
   }
 
-  const back = (
-    <Pressable style={styles.back} onPress={() => router.back()} accessibilityLabel={t('browse.back')}>
-      <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-        <Path d="M9 6l6 6-6 6" />
-      </Svg>
-    </Pressable>
-  );
+  const back = <BackButton />;
 
   if (error || store === null || store === undefined) {
     return (
       <SafeAreaView style={styles.screen}>
-        <View style={styles.item}>{back}</View>
+        <View style={styles.topBar}>{back}</View>
         <View style={[styles.screen, styles.center]}>
           {error ? (
-            <>
-              <Text style={styles.error}>{t('errors.noConnection')}</Text>
-              <Button title={t('errors.retry')} onPress={retry} />
-            </>
+            <EmptyState
+              icon={<Path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18" />}
+              message={t('errors.noConnection')}
+              action={<Button title={t('errors.retry')} onPress={retry} />}
+            />
           ) : store === null ? (
-            <Text style={styles.empty}>{t('browse.notFound')}</Text>
+            <EmptyState icon={<><Circle cx={11} cy={11} r={7} /><Path d="M20 20l-4-4" /></>} message={t('browse.notFound')} />
           ) : (
-            <ActivityIndicator color={colors.primary} />
+            <ActivityIndicator size="large" color={colors.primary} />
           )}
         </View>
       </SafeAreaView>
@@ -102,7 +99,15 @@ export default function StoreScreen() {
         ListHeaderComponent={
           <>
             <View>
-              <Image source={store.cover_url} style={styles.cover} />
+              {/* contentPosition="top": لافتة المتجر غالبًا في أعلى الصورة، فلا تُقص */}
+              <Picture
+                source={store.cover_url}
+                name={store.name_ar}
+                hint={store.description_ar ?? ''}
+                style={styles.cover}
+                contentPosition="top"
+                size={72}
+              />
               <SafeAreaView edges={['top']} style={styles.backWrap}>
                 {back}
               </SafeAreaView>
@@ -114,10 +119,21 @@ export default function StoreScreen() {
               </View>
               {!!store.description_ar && <Text style={styles.secondary}>{store.description_ar}</Text>}
               <View style={styles.meta}>
-                <Text style={styles.metaText}>{t('browse.prep', { n: store.prep_minutes })}</Text>
-                <Text style={styles.metaText}>
-                  {t('browse.minOrder')} <Text style={styles.ltr}>{formatMoney(store.min_order)}</Text>
-                </Text>
+                <View style={styles.metaPill}>
+                  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <Circle cx={12} cy={12} r={9} />
+                    <Path d="M12 7v5l3 2" />
+                  </Svg>
+                  <Text style={styles.metaText}>{t('browse.prep', { n: store.prep_minutes })}</Text>
+                </View>
+                <View style={styles.metaPill}>
+                  <Svg width={16} height={16} viewBox="0 0 24 24" fill="none" stroke={colors.primaryDark} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                    <Path d="M6 7h12l1 13H5L6 7zM9 7a3 3 0 016 0" />
+                  </Svg>
+                  <Text style={styles.metaText}>
+                    {t('browse.minOrder')} <Text style={styles.ltr}>{formatMoney(store.min_order)}</Text>
+                  </Text>
+                </View>
               </View>
             </View>
           </>
@@ -127,6 +143,7 @@ export default function StoreScreen() {
           <View style={styles.item}>
             <ProductRow
               product={item}
+              hint={`${store.name_ar} ${store.description_ar ?? ''}`}
               onPress={() => router.push({ pathname: '/product/[id]', params: { id: item.id } })}
               // المتجر المغلق يُتصفح دون إضافة للسلة (القسم 6)
               onAdd={
@@ -137,12 +154,19 @@ export default function StoreScreen() {
             />
           </View>
         )}
-        ListEmptyComponent={<Text style={styles.empty}>{t('browse.noProducts')}</Text>}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <EmptyState icon={<Path d="M6 7h12l1 13H5L6 7zM9 7a3 3 0 016 0" />} message={t('browse.noProducts')} />
+        }
         contentContainerStyle={styles.list}
       />
       {cartItems.length > 0 && (
         <SafeAreaView edges={['bottom']} style={styles.cartBar}>
-          <Pressable style={styles.cartButton} onPress={() => router.push('/cart')} accessibilityRole="button">
+          <Pressable
+            style={({ pressed }) => [styles.cartButton, pressed && styles.cartPressed]}
+            onPress={() => router.push('/cart')}
+            accessibilityRole="button"
+          >
             <Text style={styles.cartText}>{t('cart.view', { count: cartCount(cartItems) })}</Text>
             <Text style={[styles.cartText, styles.ltr]}>{formatMoney(cartSubtotal(cartItems))}</Text>
           </Pressable>
@@ -155,74 +179,68 @@ export default function StoreScreen() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
   center: { justifyContent: 'center', padding: 24, gap: 16 },
-  list: { paddingBottom: 24 },
-  cover: { height: 150, backgroundColor: colors.placeholder },
-  backWrap: { position: 'absolute', top: 0, right: 16 },
-  back: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 16,
-  },
+  topBar: { paddingHorizontal: 16, paddingTop: 16 },
+  list: { paddingBottom: 32 },
+  // نسبة 16:9 من عرض الشاشة (نحو 220 نقطة على الهاتف)، وحد أقصى حتى لا تملأ الشاشة العريضة
+  cover: { width: '100%', aspectRatio: 16 / 9, maxHeight: 320 },
+  backWrap: { position: 'absolute', top: 0, right: 16, paddingTop: 16 },
+  // بطاقة المعلومات تصعد فوق أسفل الغلاف
   info: {
+    marginHorizontal: 16,
+    marginTop: -28,
     padding: 16,
-    gap: 6,
+    gap: 8,
     backgroundColor: colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.border,
+    borderRadius: radius.lg,
+    ...shadows.card,
   },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  name: { fontFamily: fonts.bold, fontSize: 22, color: colors.text },
+  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  name: { fontFamily: fonts.bold, fontSize: 22, lineHeight: 34, color: colors.text, flexShrink: 1 },
   closed: {
     fontFamily: fonts.bold,
     fontSize: 12,
     color: colors.dangerDark,
     backgroundColor: colors.dangerSoft,
-    borderRadius: 8,
-    paddingHorizontal: 8,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
     paddingVertical: 3,
     overflow: 'hidden',
   },
-  secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
-  meta: { flexDirection: 'row', gap: 14 },
-  metaText: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
+  secondary: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.textSecondary },
+  meta: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 4 },
+  metaPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.primaryTint,
+    borderRadius: radius.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+  },
+  metaText: { fontFamily: fonts.medium, fontSize: 13, color: colors.text },
   ltr: { writingDirection: 'ltr' },
   // اسم القسم برتقالي ليتميز عن أسماء المنتجات. الدرجة الأغمق لأنها نص على خلفية فاتحة (القسم 7)
   section: {
     fontFamily: fonts.bold,
-    fontSize: 17,
+    fontSize: 18,
     color: colors.primaryDark,
-    marginTop: 16,
+    marginTop: 24,
+    marginBottom: 2,
     paddingHorizontal: 16,
   },
   item: { paddingHorizontal: 16 },
-  empty: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
-  cartBar: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: colors.border,
-  },
+  // شريط السلة يطفو فوق القائمة
+  cartBar: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 12, backgroundColor: colors.background },
   cartButton: {
-    height: 54,
-    borderRadius: 14,
+    height: 58,
+    borderRadius: radius.lg,
     backgroundColor: colors.primary,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    ...shadows.primary,
   },
+  cartPressed: { transform: [{ scale: 0.98 }], opacity: 0.92 },
   cartText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
 });

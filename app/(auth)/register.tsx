@@ -2,12 +2,14 @@
 import { Link, router } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { Button } from '@/components/Button';
+import { Input } from '@/components/Input';
 import { authErrorKey } from '@/lib/authError';
 import { normalizePhone, phoneToEmail } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, radius } from '@/theme';
 
 export default function Register() {
   const { t } = useTranslation();
@@ -53,50 +55,35 @@ export default function Register() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <Text style={styles.title}>{t('auth.register')}</Text>
-
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('auth.fullName')}</Text>
-        <TextInput
-          style={styles.input}
-          value={name}
-          onChangeText={setName}
-          accessibilityLabel={t('auth.fullName')}
-        />
-        {!!fieldErrors.name && <Text style={styles.error}>{fieldErrors.name}</Text>}
+      <View style={styles.header}>
+        <Text style={styles.title}>{t('auth.register')}</Text>
+        <Text style={styles.secondary}>{t('auth.createTagline')}</Text>
       </View>
 
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('auth.phone')}</Text>
-        <TextInput
-          style={[styles.input, styles.ltr]}
+      <View style={styles.form}>
+        <Input label={t('auth.fullName')} value={name} onChangeText={setName} error={fieldErrors.name} />
+        <Input
+          label={t('auth.phone')}
+          ltr
           value={phone}
           onChangeText={setPhone}
           keyboardType="phone-pad"
           placeholder="091 234 5678"
-          placeholderTextColor={colors.textSecondary}
-          accessibilityLabel={t('auth.phone')}
+          error={fieldErrors.phone}
         />
-        {!!fieldErrors.phone && <Text style={styles.error}>{fieldErrors.phone}</Text>}
-      </View>
-
-      <View style={styles.field}>
-        <Text style={styles.label}>{t('auth.password')}</Text>
-        <TextInput
-          style={[styles.input, styles.ltr]}
+        <Input
+          label={t('auth.password')}
+          ltr
           value={password}
           onChangeText={setPassword}
           secureTextEntry
-          accessibilityLabel={t('auth.password')}
+          error={fieldErrors.password}
         />
-        {!!fieldErrors.password && <Text style={styles.error}>{fieldErrors.password}</Text>}
+
+        {!!error && <Text style={styles.error}>{error}</Text>}
+
+        <Button title={t('auth.register')} onPress={submit} loading={busy} />
       </View>
-
-      {!!error && <Text style={styles.error}>{error}</Text>}
-
-      <Pressable style={[styles.button, busy && styles.busy]} onPress={submit} disabled={busy}>
-        <Text style={styles.buttonText}>{t('auth.register')}</Text>
-      </Pressable>
 
       <Text style={styles.secondary}>
         {t('auth.haveAccount')}{' '}
@@ -110,39 +97,27 @@ export default function Register() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  content: { flexGrow: 1, paddingHorizontal: 24, paddingTop: 72, paddingBottom: 32, gap: 20 },
-  title: { fontFamily: fonts.bold, fontSize: 28, color: colors.text, textAlign: 'center' },
+  content: { flexGrow: 1, paddingHorizontal: 20, paddingTop: 72, paddingBottom: 32, gap: 20 },
+  header: { alignItems: 'center', gap: 4, marginBottom: 8 },
+  title: { fontFamily: fonts.bold, fontSize: 30, lineHeight: 46, color: colors.text, textAlign: 'center' },
   secondary: {
     fontFamily: fonts.regular,
     fontSize: 15,
     color: colors.textSecondary,
     textAlign: 'center',
   },
-  field: { gap: 6 },
-  label: { fontFamily: fonts.bold, fontSize: 14, color: colors.text },
-  input: {
-    height: 52,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
-    paddingHorizontal: 14,
-    fontFamily: fonts.regular,
-    fontSize: 16,
-    color: colors.text,
-    textAlign: 'right',
+  // الحقول والزر في بطاقة واحدة
+  form: { ...card, padding: 20, gap: 16 },
+  error: {
+    fontFamily: fonts.medium,
+    fontSize: 14,
+    color: colors.dangerDark,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.sm,
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    textAlign: 'center',
+    overflow: 'hidden',
   },
-  // الأرقام وكلمة المرور تُكتب من اليسار إلى اليمين
-  ltr: { writingDirection: 'ltr' },
-  error: { fontFamily: fonts.regular, fontSize: 14, color: colors.danger },
-  button: {
-    height: 54,
-    borderRadius: 14,
-    backgroundColor: colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  busy: { opacity: 0.6 },
-  buttonText: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
   link: { fontFamily: fonts.bold, color: colors.primaryDark },
 });

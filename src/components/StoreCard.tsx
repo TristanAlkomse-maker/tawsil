@@ -1,9 +1,10 @@
 // بطاقة متجر في الرئيسية. المتجر المغلق يظهر باهتًا وعليه وسم "مغلق"، لكنه يُفتح للتصفح.
-import { Image } from 'expo-image';
 import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import Svg, { Circle, Path } from 'react-native-svg';
 
-import { colors, fonts } from '@/theme';
+import { Picture } from '@/components/Picture';
+import { card, colors, fonts, radius } from '@/theme';
 
 export type Store = {
   id: string;
@@ -15,55 +16,81 @@ export type Store = {
   is_open: boolean;
 };
 
-type Props = { store: Store; onPress: () => void };
+// category: اسم تصنيف المتجر، تُختار منه الصورة الافتراضية إن لم يدل اسم المتجر على نوعه
+type Props = { store: Store; category?: string; onPress: () => void };
 
-export function StoreCard({ store, onPress }: Props) {
+export function StoreCard({ store, category, onPress }: Props) {
   const { t } = useTranslation();
 
   return (
-    <Pressable style={styles.card} onPress={onPress} accessibilityRole="button">
+    <Pressable
+      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
+      onPress={onPress}
+      accessibilityRole="button"
+    >
       <View style={[styles.row, !store.is_open && styles.dim]}>
-        {/* إن لم يكن للمتجر شعار يبقى مربعًا رصاصيًا */}
-        <Image source={store.logo_url} style={styles.logo} />
+        <Picture
+          source={store.logo_url}
+          name={store.name_ar}
+          hint={`${store.description_ar ?? ''} ${category ?? ''}`}
+          style={styles.logo}
+        />
         <View style={styles.info}>
-          <View style={styles.titleRow}>
-            <Text style={styles.name}>{store.name_ar}</Text>
-            <Text style={[styles.badge, store.is_open ? styles.open : styles.closed]}>
-              {t(store.is_open ? 'browse.open' : 'browse.closed')}
+          <Text style={styles.name} numberOfLines={1}>
+            {store.name_ar}
+          </Text>
+          {!!store.description_ar && (
+            <Text style={styles.secondary} numberOfLines={1}>
+              {store.description_ar}
             </Text>
+          )}
+          <View style={styles.metaRow}>
+            <View style={[styles.badge, store.is_open ? styles.open : styles.closed]}>
+              <View style={[styles.dot, { backgroundColor: store.is_open ? colors.success : colors.dangerDark }]} />
+              <Text style={[styles.badgeText, { color: store.is_open ? colors.success : colors.dangerDark }]}>
+                {t(store.is_open ? 'browse.open' : 'browse.closed')}
+              </Text>
+            </View>
+            <View style={styles.time}>
+              <Svg width={15} height={15} viewBox="0 0 24 24" fill="none" stroke={colors.textSecondary} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+                <Circle cx={12} cy={12} r={9} />
+                <Path d="M12 7v5l3 2" />
+              </Svg>
+              <Text style={styles.meta}>{t('browse.minutes', { n: store.prep_minutes })}</Text>
+            </View>
           </View>
-          {!!store.description_ar && <Text style={styles.secondary}>{store.description_ar}</Text>}
-          <Text style={styles.meta}>{t('browse.minutes', { n: store.prep_minutes })}</Text>
         </View>
+        {/* سهم صغير يوحي بأن البطاقة تُفتح (يشير لليسار في واجهة RTL) */}
+        <Svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke={colors.stepIdle} strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+          <Path d="M15 6l-6 6 6 6" />
+        </Svg>
       </View>
     </Pressable>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 12,
-  },
-  row: { flexDirection: 'row', gap: 12, alignItems: 'center' },
+  card: { ...card, padding: 12 },
+  pressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
+  row: { flexDirection: 'row', gap: 14, alignItems: 'center' },
   dim: { opacity: 0.6 },
-  logo: { width: 76, height: 76, borderRadius: 14, backgroundColor: colors.placeholder },
+  logo: { width: 84, height: 84, borderRadius: radius.md },
   info: { flex: 1, gap: 6 },
-  titleRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   name: { fontFamily: fonts.bold, fontSize: 17, color: colors.text },
-  badge: {
-    fontFamily: fonts.bold,
-    fontSize: 12,
-    borderRadius: 8,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    overflow: 'hidden',
-  },
-  open: { color: colors.success, backgroundColor: colors.successSoft },
-  closed: { color: colors.dangerDark, backgroundColor: colors.dangerSoft },
   secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
+  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
+  badge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
+  },
+  dot: { width: 6, height: 6, borderRadius: 3 },
+  badgeText: { fontFamily: fonts.bold, fontSize: 12 },
+  open: { backgroundColor: colors.successSoft },
+  closed: { backgroundColor: colors.dangerSoft },
+  time: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   meta: { fontFamily: fonts.regular, fontSize: 13, color: colors.textSecondary },
 });

@@ -7,11 +7,14 @@ import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, SectionList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { Path } from 'react-native-svg';
+
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
 import { formatMoney } from '@/lib/money';
 import { isActive, type OrderStatus, statusLabel } from '@/lib/orderStatus';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, radius } from '@/theme';
 
 type Order = {
   id: string;
@@ -67,12 +70,15 @@ export default function Orders() {
 
       {error ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{t('errors.noConnection')}</Text>
-          <Button title={t('errors.retry')} onPress={load} />
+          <EmptyState
+            icon={<Path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18" />}
+            message={t('errors.noConnection')}
+            action={<Button title={t('errors.retry')} onPress={load} />}
+          />
         </View>
       ) : !orders ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <SectionList
@@ -80,29 +86,47 @@ export default function Orders() {
           keyExtractor={(o) => o.id}
           contentContainerStyle={styles.list}
           stickySectionHeadersEnabled={false}
-          ListEmptyComponent={<Text style={styles.empty}>{t('order.empty')}</Text>}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <EmptyState
+              icon={<Path d="M6 3h12v18l-3-2-3 2-3-2-3 2zM9 8h6M9 12h6" />}
+              message={t('order.empty')}
+              action={<Button title={t('cart.browse')} onPress={() => router.push('/')} />}
+            />
+          }
           renderSectionHeader={({ section }) => <Text style={styles.section}>{section.title}</Text>}
           renderItem={({ item }) => (
             <Pressable
-              style={styles.card}
+              style={({ pressed }) => [styles.card, pressed && styles.pressed]}
               onPress={() => router.push({ pathname: '/order/[id]', params: { id: item.id } })}
               accessibilityRole="button"
             >
               <View style={styles.grow}>
-                <Text style={styles.name}>{item.stores?.name_ar ?? ''}</Text>
+                <Text style={styles.name} numberOfLines={1}>
+                  {item.stores?.name_ar ?? ''}
+                </Text>
                 <Text style={styles.secondary}>{t('order.number', { n: item.order_number })}</Text>
               </View>
               <View style={styles.end}>
-                <Text
+                <View
                   style={[
-                    styles.status,
-                    isActive(item.status) && styles.statusActive,
-                    item.status === 'delivered' && styles.statusDone,
-                    (item.status === 'rejected' || item.status === 'cancelled') && styles.statusEnded,
+                    styles.badge,
+                    isActive(item.status) && styles.badgeActive,
+                    item.status === 'delivered' && styles.badgeDone,
+                    (item.status === 'rejected' || item.status === 'cancelled') && styles.badgeEnded,
                   ]}
                 >
-                  {statusLabel(item.status)}
-                </Text>
+                  <Text
+                    style={[
+                      styles.status,
+                      isActive(item.status) && styles.statusActive,
+                      item.status === 'delivered' && styles.statusDone,
+                      (item.status === 'rejected' || item.status === 'cancelled') && styles.statusEnded,
+                    ]}
+                  >
+                    {statusLabel(item.status)}
+                  </Text>
+                </View>
                 <Text style={styles.amount}>{formatMoney(item.total)}</Text>
               </View>
             </Pressable>
@@ -115,36 +139,25 @@ export default function Orders() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, padding: 16, paddingBottom: 4 },
+  title: { fontFamily: fonts.bold, fontSize: 26, lineHeight: 40, color: colors.text, padding: 16, paddingBottom: 4 },
   center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
-  list: { paddingHorizontal: 16, paddingBottom: 16, gap: 12 },
+  list: { paddingHorizontal: 16, paddingBottom: 24, gap: 12 },
   section: { fontFamily: fonts.bold, fontSize: 15, color: colors.textSecondary, marginTop: 12 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 16,
-  },
+  card: { ...card, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  pressed: { transform: [{ scale: 0.985 }], opacity: 0.92 },
   grow: { flex: 1, gap: 4 },
-  end: { alignItems: 'flex-end', gap: 4 },
+  end: { alignItems: 'flex-end', gap: 6 },
   name: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
   secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
-  status: { fontFamily: fonts.bold, fontSize: 14, color: colors.textSecondary },
+  // وسم الحالة: كبسولة بدرجة فاتحة من لون النص نفسه
+  badge: { borderRadius: radius.pill, paddingHorizontal: 10, paddingVertical: 3, backgroundColor: colors.neutralSoft },
+  badgeActive: { backgroundColor: colors.primaryTint },
+  badgeDone: { backgroundColor: colors.successSoft },
+  badgeEnded: { backgroundColor: colors.dangerSoft },
+  status: { fontFamily: fonts.bold, fontSize: 13, color: colors.textSecondary },
   statusActive: { color: colors.primaryDark },
   statusDone: { color: colors.success },
-  statusEnded: { color: colors.danger },
+  statusEnded: { color: colors.dangerDark },
   // الأسعار تُقرأ من اليسار إلى اليمين (القسم 7)
-  amount: { fontFamily: fonts.regular, fontSize: 14, color: colors.text, writingDirection: 'ltr' },
-  empty: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 32,
-  },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
+  amount: { fontFamily: fonts.bold, fontSize: 15, color: colors.text, writingDirection: 'ltr' },
 });

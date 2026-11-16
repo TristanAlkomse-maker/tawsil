@@ -3,12 +3,13 @@ import { Tabs } from 'expo-router/js-tabs';
 import { useTranslation } from 'react-i18next';
 import Svg, { Circle, Path } from 'react-native-svg';
 
+import { cartCount, useCart } from '@/stores/cart';
 import { colors, fonts } from '@/theme';
 
 // خصائص الرسم المشتركة بين أيقونات الشريط (من ملف التصميم)
 const icon = {
-  width: 22,
-  height: 22,
+  width: 24,
+  height: 24,
   viewBox: '0 0 24 24',
   fill: 'none',
   strokeWidth: 2,
@@ -18,6 +19,8 @@ const icon = {
 
 export default function TabsLayout() {
   const { t } = useTranslation();
+  // عدد القطع في السلة يظهر شارةً على أيقونتها
+  const count = useCart((s) => cartCount(s.items));
 
   return (
     <Tabs
@@ -25,8 +28,15 @@ export default function TabsLayout() {
         headerShown: false,
         tabBarActiveTintColor: colors.primaryDark,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarLabelStyle: { fontFamily: fonts.regular, fontSize: 12 },
-        tabBarStyle: { height: 64, backgroundColor: colors.surface, borderTopColor: colors.border },
+        tabBarLabelStyle: { fontFamily: fonts.medium, fontSize: 12 },
+        tabBarStyle: {
+          height: 68,
+          paddingTop: 6,
+          backgroundColor: colors.surface,
+          borderTopWidth: 0,
+          boxShadow: '0 -4px 16px rgba(31, 41, 55, 0.06)',
+        },
+        tabBarBadgeStyle: { backgroundColor: colors.primary, color: colors.text, fontFamily: fonts.bold, fontSize: 11 },
       }}
     >
       <Tabs.Screen
@@ -45,6 +55,7 @@ export default function TabsLayout() {
         name="cart"
         options={{
           title: t('tabs.cart'),
+          tabBarBadge: count > 0 ? count : undefined,
           tabBarIcon: ({ color }) => (
             <Svg {...icon} stroke={color}>
               <Circle cx={9} cy={20} r={1.5} />

@@ -6,13 +6,15 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Alert, FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import Svg, { Path } from 'react-native-svg';
+import Svg, { Circle, Path } from 'react-native-svg';
 
 import { Button } from '@/components/Button';
+import { EmptyState } from '@/components/EmptyState';
+import { ScreenHeader } from '@/components/ScreenHeader';
 import { selectedAddress } from '@/lib/address';
 import { formatMoney } from '@/lib/money';
 import { supabase } from '@/lib/supabase';
-import { colors, fonts } from '@/theme';
+import { card, colors, fonts, radius } from '@/theme';
 
 type Address = {
   id: string;
@@ -79,44 +81,53 @@ export default function Addresses() {
 
   return (
     <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Pressable style={styles.back} onPress={() => router.back()} accessibilityLabel={t('browse.back')}>
-          <Svg width={22} height={22} viewBox="0 0 24 24" fill="none" stroke={colors.text} strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-            <Path d="M9 6l6 6-6 6" />
-          </Svg>
-        </Pressable>
-        <Text style={styles.title}>{t('addresses.title')}</Text>
-      </View>
+      <ScreenHeader title={t('addresses.title')} />
 
       {error ? (
         <View style={styles.center}>
-          <Text style={styles.error}>{t('errors.noConnection')}</Text>
-          <Button title={t('errors.retry')} onPress={load} />
+          <EmptyState
+            icon={<Path d="M2 8.5a15 15 0 0120 0M5.5 12a10 10 0 0113 0M9 15.5a5 5 0 016 0M12 19h.01M3 3l18 18" />}
+            message={t('errors.noConnection')}
+            action={<Button title={t('errors.retry')} onPress={load} />}
+          />
         </View>
       ) : !addresses ? (
         <View style={styles.center}>
-          <ActivityIndicator color={colors.primary} />
+          <ActivityIndicator size="large" color={colors.primary} />
         </View>
       ) : (
         <FlatList
           data={addresses}
           keyExtractor={(a) => a.id}
           contentContainerStyle={styles.list}
-          ListEmptyComponent={<Text style={styles.empty}>{t('addresses.empty')}</Text>}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <EmptyState
+              icon={
+                <>
+                  <Path d="M12 22s7-7.5 7-12.5A7 7 0 005 9.5C5 14.5 12 22 12 22z" />
+                  <Circle cx={12} cy={9.5} r={2.5} />
+                </>
+              }
+              message={t('addresses.empty')}
+            />
+          }
           renderItem={({ item }) => {
             const active = item.id === selected?.id;
             return (
               <View style={[styles.card, active && styles.cardActive]}>
+                {/* دائرة الاختيار: ممتلئة للعنوان المختار */}
+                <View style={[styles.radio, active && styles.radioActive]}>{active && <View style={styles.radioDot} />}</View>
                 <Pressable
                   style={styles.info}
                   onPress={() => choose(item.id)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={styles.name}>
-                    {item.label}
-                    {active && <Text style={styles.selected}>{`  ${t('addresses.selected')}`}</Text>}
-                  </Text>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.name}>{item.label}</Text>
+                    {active && <Text style={styles.selected}>{t('addresses.selected')}</Text>}
+                  </View>
                   <Text style={styles.secondary}>
                     {item.zones.name_ar} · {t('addresses.fee')}{' '}
                     <Text style={styles.ltr}>{formatMoney(item.zones.delivery_fee)}</Text>
@@ -143,43 +154,45 @@ export default function Addresses() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.background },
-  header: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16, paddingBottom: 12 },
-  back: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: colors.surface,
+  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
+  list: { paddingHorizontal: 16, paddingTop: 4, gap: 12, paddingBottom: 16 },
+  // الإطار الشفاف يحجز مكان الإطار البرتقالي، فلا تتحرك البطاقة عند الاختيار
+  card: { ...card, flexDirection: 'row', alignItems: 'center', padding: 14, gap: 12, borderWidth: 2, borderColor: 'transparent' },
+  // العنوان المختار بإطار برتقالي وخلفية برتقالية خفيفة
+  cardActive: { borderColor: colors.primary, backgroundColor: colors.primaryTint },
+  radio: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 2,
+    borderColor: colors.stepIdle,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  title: { fontFamily: fonts.bold, fontSize: 20, color: colors.text, flex: 1 },
-  center: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
-  list: { paddingHorizontal: 16, gap: 12, paddingBottom: 16 },
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: 16,
-    padding: 14,
-    gap: 8,
-  },
-  // العنوان المختار بإطار برتقالي
-  cardActive: { borderColor: colors.primary, borderWidth: 2 },
+  radioActive: { borderColor: colors.primary },
+  radioDot: { width: 10, height: 10, borderRadius: 5, backgroundColor: colors.primary },
   info: { flex: 1, gap: 4 },
+  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   name: { fontFamily: fonts.bold, fontSize: 16, color: colors.text },
-  selected: { fontFamily: fonts.bold, fontSize: 13, color: colors.primaryDark },
-  secondary: { fontFamily: fonts.regular, fontSize: 14, color: colors.textSecondary },
-  ltr: { writingDirection: 'ltr' },
-  delete: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
-  empty: {
-    fontFamily: fonts.regular,
-    fontSize: 15,
-    color: colors.textSecondary,
-    textAlign: 'center',
-    marginTop: 32,
+  selected: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    color: colors.primaryDark,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: 10,
+    paddingVertical: 2,
+    overflow: 'hidden',
   },
-  error: { fontFamily: fonts.regular, fontSize: 15, color: colors.danger, textAlign: 'center' },
+  secondary: { fontFamily: fonts.regular, fontSize: 14, lineHeight: 22, color: colors.textSecondary },
+  ltr: { writingDirection: 'ltr' },
+  delete: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: colors.dangerSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footer: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 16 },
 });
